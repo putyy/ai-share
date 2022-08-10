@@ -1,0 +1,167 @@
+<style lang="less" type="text/less" scoped>
+.form{
+  width: 100%;
+  background-color: #faf6f6;
+  padding-top: 20rpx;
+  padding-bottom: 10rpx;
+  .item{
+    width: 80%;
+    display: flex;
+    flex-direction: row;
+    padding: 20rpx;
+    background-color: #e7eaef;
+    margin: 10rpx 10%;
+  }
+  .name{
+    padding-right: 20rpx;
+  }
+  .field{
+    .avatar{
+      width: 200rpx;
+      height: 200rpx;
+    }
+  }
+  .submit{
+    width: 50%;
+    margin-left: 25%;
+    .btn{
+      border: solid #4a9fa6 1rpx !important;
+      color: #4a9fa6!important;
+    }
+  }
+}
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view class="form">
+      <view class="item">
+        <label class="name">昵称:</label>
+        <view class="field">
+          <input class="nickname" type="nickname" value="{{user.nick_name}}" bindblur="bindNickName" placeholder="请输入昵称" maxlength="10"/>
+        </view>
+      </view>
+      <view class="item">
+        <label class="name">手机号:</label>
+        <view class="field">
+          <input class="user_name" type="number" value="{{user.user_name}}" bindblur="bindUserName" placeholder="请输入手机号" maxlength="11"/>
+        </view>
+      </view>
+      <view class="item">
+        <label class="name">头像:</label>
+        <view class="field">
+          <image class="avatar" @tap="chooseHeadImg()" src="{{user.head_img}}"></image>
+        </view>
+      </view>
+      <view class="submit">
+        <button class="btn" type="primary" plain="true" @tap="submit()" >保存修改</button>
+      </view>
+    </view>
+  </view>
+  <van-toast id="van-toast"/>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import { mapGetters } from '@wepy/x'
+  import store from '../../store'
+  import userInfo from '../../mixins/userInfo'
+  import upload from '../../mixins/upload'
+  import Toast from '@vant/weapp/lib/toast/toast'
+  import { postUserEdit } from '../../common/api'
+  import common from '../../mixins/common'
+
+  wepy.page({
+    mixins: [userInfo, upload, common],
+    store,
+    data: {
+      user : {
+        user_name: "",
+        nickname: "",
+        head_img: "",
+      }
+    },
+    computed: {
+      ...mapGetters(['isReady', 'scene'])
+    },
+    watch: {
+      isReady: {
+        immediate: true,
+        handler: function(isReady) {
+          isReady && this.userInfo()
+        }
+      }
+    },
+    methods: {
+      bindUserName: function(e) {
+        this.user.user_name = e.$wx.detail.value
+      },
+      bindNickName: function(e) {
+        this.user.nick_name = e.$wx.detail.value
+      },
+      chooseHeadImg(){
+        let that = this
+        wx.chooseMedia({
+          count: 1,
+          mediaType: ['image'],
+          sourceType: ['album', 'camera'],
+            camera: 'back',
+          success(res) {
+            wx.compressImage({
+              src: res.tempFiles[0].tempFilePath, // 图片路径
+              quality: 50, // 压缩质量
+              success(res){
+                that.user.head_img = res.tempFilePath
+              },
+              fail(res) {
+                console.log('compressImage:', res)
+              }
+            })
+          },
+          fail(res) {
+            console.log('chooseMedia:', res)
+          }
+        })
+      },
+      submit(){
+        let that = this
+        if (that.user.head_img.includes('//tmp/')) {
+          that.uploadQiNiu(that.user.head_img, store.state.scene.upload.head_img, 'png').then(res => {
+            that.user.head_img = res.key
+            postUserEdit(that.user).then(res=>{
+              if (res.code === 1) {
+                setTimeout(res=>{
+                  wx.navigateBack({
+                    delta: 1
+                  })
+                }, 100)
+              }else {
+                Toast("请完善信息")
+              }
+            })
+          })
+          return
+        }
+        postUserEdit(that.user).then(res=>{
+          if (res.code === 1) {
+            setTimeout(res=>{
+              wx.navigateBack({
+                delta: 1
+              })
+            }, 100)
+          }else {
+            Toast("请完善信息")
+          }
+        })
+      }
+    }
+  })
+</script>
+<config>
+  {
+  navigationBarTitleText: '设置',
+  usingComponents: {
+  "van-toast": "module:@vant/weapp/dist/toast",
+  }
+  }
+</config>

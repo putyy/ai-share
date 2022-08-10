@@ -1,0 +1,74 @@
+body {
+    margin: unset;
+}
+
+#app {
+    width: 100vw;
+    height: 100vh;
+}
+
+.my-table-container {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.my-table-container .my-table-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.my-table-container .my-form {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.my-table-container .my-form .el-form-item {
+    margin: 0.3rem 0.5rem;
+}
+
+.my-table-container .my-table-top .actions {
+    padding: 0 1rem;
+}
+
+.my-table-container .el-table__cell .el-row {
+    margin: 0.3rem;
+}
+
+.my-edit .el-form-item {
+    display: flex;
+    align-items: center;
+}
+
+
+.my-edit .el-form-item {
+    display: flex;
+    align-items: center;
+}
+
+.my-avatar-uploader .my-avatar {
+    width: 12rem;
+    height: 12rem;
+    display: block;
+}
+
+.my-avatar-uploader .el-upload {
+    border: 0.1rem dashed var(--el-border-color);
+    border-radius: .6rem;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: var(--el-transition-duration-fast);
+}
+
+.my-avatar-uploader .el-upload:hover {
+    border-color: var(--el-color-primary);
+}
+
+.my-avatar-uploader-icon {
+    font-size: 2.8rem!important;
+    color: #8c939d!important;
+    width: 12rem!important;
+    height: 12rem!important;
+    text-align: center!important;
+}

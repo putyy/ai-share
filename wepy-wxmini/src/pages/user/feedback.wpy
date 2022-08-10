@@ -1,0 +1,104 @@
+<style lang="less" type="text/less" scoped>
+  .list{
+    width: 100%;
+    text-align: right;
+    color: #FF6A00F9;
+    padding: 20rpx;
+    margin-right: 2%;
+    background-color: #faf6f6;
+  }
+  .form{
+    width: 100%;
+    background-color: #faf6f6;
+    padding-bottom: 10rpx;
+    .item{
+      width: 95%;
+      display: flex;
+      flex-direction: row;
+      padding: 10rpx;
+      background-color: #e7eaef;
+      margin: 0 1%;
+      .field{
+        width: 100%;
+      }
+      .field textarea{
+        width: 97%;
+        padding: 10rpx;
+        border: solid #c7cbcb 1rpx !important;
+        height: 300rpx;
+      }
+    }
+    .submit{
+      width: 50%;
+      margin-left: 25%;
+      .btn{
+        border: solid #4a9fa6 1rpx !important;
+        color: #4a9fa6!important;
+      }
+    }
+  }
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view class="list" @tap="jump('/pages/user/feedback-list')">
+      已反馈列表
+    </view>
+    <view class="form">
+      <view class="item">
+        <view class="field">
+          <textarea bindblur="bindBlur" placeholder="反馈内容" maxlength="200"/>
+        </view>
+      </view>
+      <view class="submit">
+        <button class="btn" type="primary" plain="true" @tap="submit()" >提交</button>
+      </view>
+    </view>
+  </view>
+  <van-toast id="van-toast"/>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import { mapGetters } from '@wepy/x'
+  import store from '../../store'
+  import Toast from '@vant/weapp/lib/toast/toast'
+  import common from '../../mixins/common'
+  import { postFeedbackCreate } from '../../common/api'
+
+  wepy.page({
+    mixins: [common],
+    store,
+    data: {
+      content: ""
+    },
+    computed: {
+      ...mapGetters(['isReady'])
+    },
+    methods: {
+      bindBlur: function(e) {
+        this.content = e.$wx.detail.value
+      },
+      submit() {
+        let that = this
+        setTimeout(function(){
+          postFeedbackCreate(that.content).then(res => {
+            if (res.code === 0) {
+              Toast(res.msg)
+            }else{
+              Toast("提交成功")
+            }
+          })
+        }, 100)
+      }
+    }
+  })
+</script>
+<config>
+  {
+    navigationBarTitleText: '意见反馈',
+    usingComponents: {
+      "van-toast": "module:@vant/weapp/dist/toast",
+    }
+  }
+</config>

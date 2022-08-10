@@ -1,0 +1,132 @@
+<style lang="less" type="text/less" scoped>
+  .head{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    .content{
+      width: 40%;
+    }
+    .created-at{
+      width: 30%;
+    }
+    .handle{
+      width: 20%;
+    }
+  }
+  .list{
+    display: flex;
+    flex-direction: column;
+    border-top: 1rpx solid #efe8e8;
+    width: 100%;
+    margin-top: 10rpx;
+    .item{
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8rpx;
+      border-bottom: 1rpx solid #efe8e8;
+      .content{
+        width: 40%;
+        color: rgba(140, 133, 129, 0.98);
+      }
+      .created-at{
+        width: 30%;
+        color: rgba(140, 133, 129, 0.98);
+      }
+      .handle{
+        color: #FF6A00F9;
+        width: 20%;
+      }
+    }
+  }
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view class="head">
+      <label class="content">内容</label>
+      <label class="created-at">创建时间</label>
+      <label class="handle">处理结果</label>
+    </view>
+    <scroll-view class="list" style="max-height: {{scrollHeight}}px;"  scroll-y="true" bindscrolltolower="onScrollToLower">
+      <view class="item" v-for="item in list">
+        <label class="content">{{item.content}}</label>
+        <label class="created-at">{{item.created_at}}</label>
+        <label class="handle">{{ item.remark == "" ? "未处理" : item.remark }}</label>
+      </view>
+    </scroll-view>
+  </view>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import { mapGetters } from '@wepy/x'
+  import store from '../../store'
+  import common from '../../mixins/common'
+  import { getFeedbackList } from '../../common/api'
+
+  wepy.page({
+    mixins: [common],
+    store,
+    data: {
+      scrollHeight: 0,
+      /**
+       * {
+       *    "id": 3,
+       *    "content": "测试2",
+       *    "created_at": "2022-07-19 10:30:23",
+       *    "updated_at": "0001-01-01 00:00:00"
+       * }
+       */
+      list : [
+      ],
+      lastId: 0,
+      isLastPage: false,
+    },
+    computed: {
+      ...mapGetters(['isReady', 'winHeight'])
+    },
+    watch: {
+      isReady: {
+        immediate: true,
+        handler: function(isReady) {
+          isReady && this.load()
+          let that = this
+          setTimeout(()=>{
+            let obj = wx.createSelectorQuery()
+            obj.select('.head').boundingClientRect(res => {
+              that.scrollHeight = that.winHeight - res.height
+            }).exec()
+          }, 100)
+        }
+      }
+    },
+    methods: {
+      load(){
+        let that = this
+        if (that.isLastPage) {
+          return
+        }
+        getFeedbackList(that.lastId).then(res => {
+          if (res.data.list.length <= 0) {
+            that.isLastPage = true
+            return
+          }
+          that.lastId = res.data.list[res.data.list.length - 1].id
+          if (that.list.length > 0) {
+            res.data.list.map(res => {
+              that.list.push(res)
+            })
+          } else {
+            that.list = res.data.list
+          }
+        })
+      },
+      onScrollToLower(){
+        this.load()
+      }
+    }
+  })
+</script>

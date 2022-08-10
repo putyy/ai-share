@@ -1,0 +1,63 @@
+<style lang='less' type='text/less' scoped>
+  .msg {
+    text-align: center;
+    width: 80%;
+    margin-left: 10%;
+    margin-top: 10vh;
+    margin-bottom: 10vh;
+  }
+
+  .reset-login {
+    text-align: center;
+  }
+</style>
+
+<template>
+  <view>
+    <view class="msg">{{ message }}</view>
+    <view class="reset-login">
+      <van-button type="primary" v-if="showLogin" @tap="login">重新登录</van-button>
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import store from '../store'
+
+  wepy.page({
+    data: {
+      message: '',
+      showLogin: false
+    },
+    methods: {
+      login() {
+        store.dispatch('login')
+          .then(() => {
+            wx.reLaunch({ url: '/pages/home' })
+          })
+      }
+    },
+    created() {
+      this.showLogin = true
+      let data = wx.getStorageSync('err-data')
+      switch (data.code) {
+        case 10002:
+        case 30003:
+          this.message = data.data.content
+          break
+        default:
+          this.message = '登录失败'
+          break
+      }
+    }
+  })
+</script>
+<config>
+  {
+  navigationBarTitleText: 'error',
+    usingComponents: {
+      "van-button": "module:@vant/weapp/dist/button",
+    }
+  }
+</config>

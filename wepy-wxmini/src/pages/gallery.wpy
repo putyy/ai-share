@@ -1,0 +1,174 @@
+<style lang='less' type='text/less' scoped>
+.type-tab{
+  position: fixed;
+  left: 1%;
+  background-color: #faf6f6;
+  text-align: left;
+  width: 23%;
+  font-size: 32rpx;
+  border: #faf6f6 solid 7rpx;
+  .scroll-view-item{
+    padding: 10rpx;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .selected{
+    background-color: #ffffff;
+    border-left: red solid 10rpx;
+    color: #668bb9;
+  }
+}
+.images{
+  position: relative;
+  left: 13%;
+  background-color: #fcfcfd;
+  width: 73%;
+  .item{
+    margin-bottom: 20rpx;
+    padding: 2rpx;
+  }
+  .action{
+    display: flex;
+    justify-content: space-between;
+  }
+  .text{
+    color: #303034;
+    font-size: 28rpx;
+    font-family: STIXSizeOneSym;
+  }
+}
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view class="type-tab">
+      <scroll-view scroll-y="true" style="max-height: 80vh;">
+        <view v-for="(type, idx) in typeList" class="scroll-view-item {{ selectedTypeIdx === idx ? 'selected' : '' }}" @tap="onClickType(idx, type.id)">
+          {{type.name}}
+        </view>
+      </scroll-view>
+    </view>
+    <view class="images">
+      <scroll-view style="max-height: 100vh" scroll-y="true" bindscrolltolower="onScrollToLower">
+        <view class="item" v-for="image in resourceList" >
+          <image src="{{image.img_url}}"></image>
+          <view class="text">
+            {{image.content}}
+          </view>
+          <view class="action">
+            <van-button type="default" @tap="onDownImage(image)">下载配图</van-button>
+            <van-button type="default" @tap="onCopyContent(image)">复制文案</van-button>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import store from '../store/index'
+  import {
+    mapGetters
+  } from '@wepy/x'
+  import { getResourceList, getResourceType } from '../common/api'
+  import { downImage} from '../common/helper'
+  import common from '../mixins/common'
+
+  wepy.page({
+    mixins: [common],
+    store,
+    data: {
+      selectedTypeIdx: 0,
+      selectedTypeId: 0,
+      lastId: 0,
+      isLastPage: false,
+      typeList: [
+        {
+          id: 0,
+          name: "全部"
+        },
+      ],
+      resourceList: [
+      ],
+    },
+    computed: {
+      ...mapGetters(['isReady'])
+    },
+    watch: {
+      isReady: {
+        immediate: true,
+        handler: function(isReady) {
+          if (isReady) {
+            getResourceType().then(res => {
+              res.data.list.map(res => {
+                this.typeList.push(res)
+              })
+              getResourceList().then(res => {
+                if (res.data.list.length > 0) {
+                  this.resourceList = res.data.list
+                  this.lastId = res.data.list[res.data.list.length-1].id
+                }
+              })
+            })
+          }
+        }
+      }
+    },
+    methods: {
+      onClickType(idx, tid){
+        this.selectedTypeIdx = idx
+        this.selectedTypeId = tid
+        this.lastId = 0
+        this.isLastPage = false
+        this.resourceList = []
+        this.search()
+      },
+      onScrollToLower(e){
+        console.log(e, '底部')
+        this.search()
+      },
+      onDownImage(image){
+        if (!image.img_url) {
+          return
+        }
+        downImage(image.img_url)
+      },
+      onCopyContent(image){
+        if (!image.content) {
+          return
+        }
+        wx.setClipboardData({
+          data: image.content,
+          success (res) {
+          }
+        })
+      },
+      search(){
+        if (this.isLastPage) {
+          return
+        }
+        getResourceList(this.lastId, this.selectedTypeId).then(res => {
+          if (res.data.list.length <= 0) {
+            this.isLastPage = true
+            return
+          }
+          this.lastId = res.data.list[res.data.list.length-1].id
+          res.data.list.map(res=>{
+            this.resourceList.push(res)
+          })
+        })
+      }
+    }
+  })
+</script>
+<config>
+  {
+  navigationBarTitleText: '朋友圈素材库',
+    usingComponents: {
+      "van-button": "module:@vant/weapp/dist/button",
+      "van-toast": "module:@vant/weapp/dist/toast",
+    }
+  }
+</config>

@@ -1,0 +1,127 @@
+<style lang='less' type='text/less' scoped>
+.share-content{
+  border: #d0c9c9 solid 1rpx;
+  height: 200rpx;
+}
+.actions{
+  margin-top: 10rpx;
+  display: flex;
+  justify-content: center;
+  .action{
+    margin: 10rpx;
+  }
+}
+.container video, textarea {
+  width: 700rpx;
+}
+.notice{
+  color: red;
+  width: 90%;
+}
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view>
+      <video id="myVideo"  src="{{video_ul}}"></video>
+    </view>
+    <view class="section">
+      <textarea id="content" class="share-content" bindblur="bindTextAreaBlur" placeholder="抖音、火山、快手、微视等短视频APP去解析水印" value="{{content}}"/>
+    </view>
+    <view class="actions">
+      <view class="action">
+        <van-button plain type="info" @tap="onSubmit()">解析</van-button>
+      </view>
+      <view class="action">
+        <van-button type="primary" @tap="onDown()">保存到相册</van-button>
+      </view>
+      <view class="action">
+        <van-button type="info" @tap="onCopy()">复制链接</van-button>
+      </view>
+      <view class="action">
+        <van-button plain type="info" @tap="onClear()">清空</van-button>
+      </view>
+    </view>
+    <view class="notice">Ps: 最大支持下载200M的文件，下载失败或超过文件大小请复制链接至浏览器下载(推荐使用，手机上推荐使用QQ浏览器)！！！ </view>
+    <view class="notice">Ps: 免费解析次数(个人中心会员权益查看)根据VIP等级限制、5分钟内重复解析免费(包括别人抓取过的)！！！ </view>
+  </view>
+  <van-toast id="van-toast"/>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import Toast from '@vant/weapp/lib/toast/toast'
+  import { postVideoParse } from '../common/api'
+  import store from '../store/index'
+  import {
+    mapGetters
+  } from '@wepy/x'
+  import { downVideo } from '../common/helper'
+  import common from '../mixins/common'
+
+  wepy.page({
+    mixins: [common],
+    store,
+    data: {
+      video_ul: "",
+      content: "",
+    },
+    computed: {
+      ...mapGetters(['isReady'])
+    },
+    methods: {
+      bindTextAreaBlur: function(e) {
+        this.content = e.$wx.detail.value
+      },
+      onSubmit() {
+        setTimeout(() => {
+          if(!this.content) {
+            Toast("地址都没给，解析个锤子哦")
+            return
+          }
+          postVideoParse(this.content).then(res => {
+            if (res.code === 0) {
+              Toast('锤子哦，报错了！' + res.msg)
+              return
+            }
+            this.video_ul = res.data.path
+          })
+        }, 100)
+      },
+      onCopy() {
+        let that = this
+        if (!that.video_ul) {
+          Toast("都没解析，下载个锤子哦")
+          return
+        }
+        wx.setClipboardData({
+          data: that.video_ul,
+          success (res) {
+          }
+        })
+      },
+      onDown() {
+        let that = this
+        if (!that.video_ul) {
+          Toast("都没解析，下载个锤子哦")
+          return
+        }
+        downVideo(that.video_ul)
+      },
+      onClear(){
+        setTimeout(() => {
+          this.content = ''
+        }, 200)
+      }
+    },
+  })
+</script>
+<config>
+  {
+    navigationBarTitleText: '短视频解析',
+    usingComponents: {
+      "van-button": "module:@vant/weapp/dist/button",
+      "van-toast": "module:@vant/weapp/dist/toast",
+    }
+  }
+</config>

@@ -1,0 +1,228 @@
+<style lang="less" type="text/less" scoped>
+  .money-info{
+    display: flex;
+    flex-direction: row;
+    height: 150rpx;
+    width: 100%;
+    line-height: 150rpx;
+    justify-content: space-around;
+    font-size: 50rpx;
+    background-color: #b5b8ff;
+    .money{
+      color: #FF6A00F9;
+    }
+  }
+  .search{
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    background-color: #b5b8ff;
+    padding-bottom: 20rpx;
+    align-items: center;
+    justify-content: space-around;
+    .direction{
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      color: #8f8080;
+    }
+    .trangle{
+      width: 0rpx;
+      height: 0rpx;
+      border: 10rpx solid #000;
+      border-top-color: #8f8080;
+      border-bottom-color: transparent;
+      border-left-color: transparent;
+      border-right-color: transparent;
+      margin-top: 10rpx;
+      margin-left: 4rpx;
+    }
+
+    .keyword {
+      width: 60%;
+      padding: 10rpx;
+      border: 1rpx solid #668bb9;
+      color: #333;
+      float: left;
+    }
+    .submit{
+      background-color: #668bb9;
+      color: white;
+      width: 12%;
+      padding: 10rpx;
+      height: 100%;
+      text-align: center;
+    }
+  }
+  .list{
+    display: flex;
+    flex-direction: column;
+    border-top: 1rpx solid #efe8e8;
+    width: 100%;
+    margin-top: 10rpx;
+    .item{
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20rpx;
+      border-bottom: 1rpx solid #efe8e8;
+      .content{
+        width: 25%;
+      }
+      .price{
+        color: #FF6A00F9;
+        font-size: 40rpx;
+      }
+    }
+  }
+  .head{
+    width: 100%;
+  }
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view class="head">
+      <view class="money-info">
+        <view>总爱豆:<label class="money">{{more.dou.total_ai_dou}}</label></view>
+        <view>剩余:<label class="money">{{more.dou.ai_dou}}</label></view>
+      </view>
+      <view class="search">
+        <view class="direction">
+          <picker bindchange="bindPickerChange" value="{{directionIndex}}" range="{{direction}}" range-key="name">
+            <view class="picker">
+              {{direction[directionIndex].name}}
+            </view>
+          </picker>
+          <view class="trangle"></view>
+        </view>
+        <view class="keyword">
+          <input bindinput="bindInput" maxlength="10" placeholder="关键字" />
+        </view>
+        <view class="item submit" @tap="onSearch()">搜索</view>
+      </view>
+    </view>
+    <scroll-view class="list" style="max-height: {{scrollHeight}}px;"  scroll-y="true" bindscrolltolower="onScrollToLower">
+      <view class="item" v-for="item in list">
+        <label class="content">{{item.content}}</label>
+        <label>{{item.created_at}}</label>
+        <label class="price">{{item.direction == 1 ? "+" : "-"}}{{item.ai_dou}}</label>
+      </view>
+    </scroll-view>
+  </view>
+  <van-toast id="van-toast"/>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import { mapGetters } from '@wepy/x'
+  import store from '../../store'
+  import { getAiDouLog, getWalletLog } from '../../common/api'
+  import common from '../../mixins/common'
+  import userInfo from '../../mixins/userInfo'
+
+  wepy.page({
+    mixins: [userInfo, common],
+    store,
+    data: {
+      scrollHeight: 0,
+      /**
+       * {
+       *     "id": 1,
+       *     "uid": 1,
+       *     "balance": 9999,
+       *     "direction": 1,
+       *     "created_at": "2022-07-01 15:30:30"
+       * }
+       */
+      list : [
+      ],
+      keyword: "",
+      lastId: 0,
+      isLastPage: false,
+      directionIndex: 0,
+      direction:[
+        {
+          name: "全部",
+          value: 0
+        },
+        {
+          name: "收入",
+          value: 1
+        },
+        {
+          name: "支出",
+          value: 2
+        }
+      ]
+    },
+    computed: {
+      ...mapGetters(['isReady', 'winHeight'])
+    },
+    watch: {
+      isReady: {
+        immediate: true,
+        handler: function(isReady) {
+          isReady && this.init()
+          let that = this
+          setTimeout(()=>{
+            let obj = wx.createSelectorQuery()
+            obj.select('.head').boundingClientRect(res => {
+              that.scrollHeight = that.winHeight - res.height
+            }).exec()
+          }, 100)
+        }
+      }
+    },
+    methods: {
+      init(){
+        let that = this
+        that.userInfo()
+        getAiDouLog().then(res => {
+          that.list = res.data.list
+          that.lastId = res.data.list[res.data.list.length - 1].id
+        })
+      },
+      bindPickerChange(e){
+        this.directionIndex = e.$wx.detail.value
+      },
+      bindInput(e){
+        this.keyword = e.$wx.detail.value
+      },
+      onSearch() {
+        this.lastId = 0
+        this.isLastPage = false
+        this.list = []
+        this.search()
+      },
+      search(){
+        let that = this
+        if (that.isLastPage) {
+          return
+        }
+        getAiDouLog(that.lastId, that.direction[that.directionIndex].value, that.keyword).then(res => {
+          if (res.data.list.length <= 0) {
+            that.isLastPage = true
+            return
+          }
+          that.lastId = res.data.list[res.data.list.length - 1].id
+          res.data.list.map(res => {
+            that.list.push(res)
+          })
+        })
+      },
+      onScrollToLower(){
+        this.search()
+      }
+    }
+  })
+</script>
+<config>
+  {
+    navigationBarTitleText: '爱享豆',
+    usingComponents: {
+      "van-toast": "module:@vant/weapp/dist/toast",
+    }
+  }
+</config>

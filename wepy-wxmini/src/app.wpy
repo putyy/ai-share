@@ -1,0 +1,65 @@
+<style lang="less">
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+</style>
+
+<script>
+import wepy from '@wepy/core';
+import vuex from '@wepy/x';
+
+wepy.use(vuex);
+wepy.app({
+  onLaunch() {
+    let xData = wx.getStorageSync('x-data')
+    let store = require('./store/index').default
+    if (xData.token) {
+      store.commit('setToken', xData.token)
+      store.commit('setUid', xData.uid)
+      store.dispatch('scene')
+    } else {
+      store.dispatch('login')
+    }
+
+    wx.getSystemInfo({
+      success: function(res) {
+        store.commit('setSystemInfo', res)
+      }
+    });
+
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage']
+    })
+  }
+});
+</script>
+<config>
+{
+    pages: [
+      'pages/home',
+      'pages/user/fans',
+      'pages/user/wallet',
+      'pages/user/aidou',
+      'pages/user/feedback',
+      'pages/user/feedback-list',
+      'pages/ppt/index',
+      'pages/user/setting',
+      'pages/ppt/detail',
+      'pages/videoParse',
+      'pages/gallery',
+      'pages/err',
+    ],
+    window: {
+      backgroundTextStyle: 'light',
+      navigationBarBackgroundColor: '#fff',
+      navigationBarTitleText: 'WeChat',
+      navigationBarTextStyle: 'black'
+    }
+}
+</config>

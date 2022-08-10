@@ -1,0 +1,199 @@
+<style lang="less" type="text/less" scoped>
+  .container{
+    width: 98%;
+    margin-left:1%;
+    margin-right:1%;
+  }
+  .cover{
+    width: 100%;
+    image{
+      width: 100%;
+      height: 350rpx;
+    }
+  }
+  .info{
+    width: 100%;
+    text-align: left;
+    .name{
+      font-size: 40rpx;
+    }
+    .desc{
+      display: -webkit-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-all;
+      -webkit-box-orient: vertical;
+      color: #949292;
+      font-size: 30rpx;
+      -webkit-line-clamp:3;
+    }
+  }
+  .contents{
+    margin-top: 15rpx;
+    width: 100%;
+    background-color: #f6f6f6;
+    color: #949292;
+    .item{
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+      padding: 10rpx 0;
+      image{
+        width: 100%;
+      }
+    }
+  }
+  .actions{
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: white;
+    display: flex;
+    flex-direction: row;
+    .price{
+      color: red;
+      width: 40%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40rpx;
+    }
+    .next{
+      width: 60%;
+      background-color: #ee0202;
+      border-radius: unset;
+      padding: unset;
+      margin: unset;
+    }
+  }
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view class="cover">
+      <image src="{{pptInfo.img_url}}"></image>
+    </view>
+    <view class="info">
+      <label class="name">{{pptInfo.name}}</label>
+      <view class="desc">{{pptInfo.desc_content}}</view>
+    </view>
+    <view class="contents">
+      <view class="item" v-for="c in pptInfo.contents">
+        <image src="{{c.img_url}}"></image>
+        <view class="content">{{c.content}}</view>
+      </view>
+    </view>
+    <view class="actions">
+      <view class="price">
+        <label>爱享豆:</label>
+        <label>{{pptInfo.ai_dou}}</label>
+      </view>
+      <button class="next" type="primary" @tap="next">{{pptInfo.is_use ? "复制下载地址" : "支付爱享豆购买"}}</button>
+    </view>
+    <van-toast id="van-toast" />
+    <van-dialog id="van-dialog" />
+  </view>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import Toast from '@vant/weapp/lib/toast/toast'
+  import Dialog from '@vant/weapp/lib/dialog/dialog';
+  import { getPptContent, postPptBuy } from '../../common/api'
+  import store from '../../store'
+  import { mapGetters } from '@wepy/x'
+  import common from '../../mixins/common'
+
+  wepy.page({
+    mixins: [common],
+    store,
+    data: {
+      query: {
+        id: '0'
+      },
+      pptInfo: {
+        /**
+         * @id id
+         * @pid  ppt id
+         * @img_url 图片说明
+         * @content 文字说明
+         */
+        contents: [],
+        // 描述内容
+        desc_content: '',
+        // 文件地址
+        file_url: '',
+        id: '',
+        ai_dou: 0,
+        // 封面
+        img_url: '',
+        // 名称
+        name: '',
+        // 是否可以下载
+        is_use: false
+      }
+    },
+    onLoad(query) {
+      Object.assign(this.query, query)
+    },
+    computed: {
+      ...mapGetters(['isReady']),
+      isInit() {
+        return this.isReady && this.query.id
+      }
+    },
+    watch: {
+      isInit: {
+        immediate: true,
+        handler: function(isReady) {
+          if (isReady) {
+            getPptContent(this.query.id).then(res => {
+              this.pptInfo = res.data
+            })
+          }
+        }
+      }
+    },
+    methods: {
+      next() {
+        let that = this
+        if (that.pptInfo.is_use) {
+          wx.setClipboardData({
+            data: that.pptInfo.file_url,
+            success(res) {
+            }
+          })
+          return
+        }
+        Dialog.confirm({
+          title: '支付',
+          message: '支付爱享豆购买'
+        })
+          .then(() => {
+            // on confirm
+            postPptBuy(that.pptInfo.id).then(res => {
+              if (res.code == 1) {
+                that.pptInfo.is_use = true
+                that.pptInfo.file_url = res.data.file_url
+              } else {
+                Toast(res.msg)
+              }
+            })
+          })
+          .catch(() => {
+            // on cancel
+          })
+      }
+    }
+  })
+</script>
+<config>
+  {
+  navigationBarTitleText: 'ppt详情',
+  usingComponents: {
+    "van-toast": "module:@vant/weapp/dist/toast",
+    "van-dialog": "module:@vant/weapp/dist/dialog",
+    }
+  }
+</config>

@@ -1,0 +1,209 @@
+<style lang="less" type="text/less" scoped>
+.head{
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  background-color: white;
+}
+.search{
+  .input{
+    padding: 10rpx;
+    margin-left: 1.5%;
+    border: 1rpx solid #668bb9;
+    color: #333;
+    width: 75%;
+    float: left;
+  }
+  .go{
+    margin-left: 5%;
+    text-align: center;
+    line-height: 70rpx;
+    float: left;
+  }
+}
+
+.ppt-type{
+  display: flex;
+  flex-wrap: wrap;
+  button{
+    margin: 10rpx;
+    width: 230rpx;
+  }
+  .choose button{
+    border: 1rpx solid #87c5dc;
+  }
+}
+
+.ppt-list{
+  margin-left: 4%;
+  .item{
+    display: flex;
+    flex-direction: column;
+    width: 45%;
+    height: 300rpx;
+    margin: 1%;
+    border: #e7eaef 5rpx solid;
+    background-color: #fff;
+    float: left;
+    image{
+      max-width: 100%;
+    }
+    .name{
+      display: -webkit-box;
+      overflow: hidden;
+      text-overflow: ellipsis; -webkit-line-clamp:1;
+      word-break: break-all;
+      -webkit-box-orient: vertical;
+    }
+    .price{
+      color: red;
+    }
+  }
+}
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view class="head">
+      <view class="search">
+        <view class="input">
+          <input value="{{keyword}}" bindinput="bindInput" placeholder="关键词搜索"/>
+        </view>
+        <view class="go" @tap="onSearch()">
+          搜索
+        </view>
+      </view>
+      <view class="ppt-type">
+        <van-button v-for="(type, idx) in typeList" type="default" @tap="clickType(idx, type.id)" class="{{ selectedTypeIdx === idx ? 'choose' : '' }}">{{type.name}}</van-button>
+      </view>
+    </view>
+    <scroll-view class="ppt-list" style="max-height: {{scrollHeight}}px;" scroll-y="true" bindscrolltolower="onScrollToLower">
+      <view class="item" v-for="ppt in pptList" @tap="jumpDetail(ppt.id)">
+        <image src="{{ppt.img_url}}"></image>
+        <view>
+          <label class="name">{{ppt.name}}</label>
+          <label>爱享豆: <label class="price">{{ppt.ai_dou}}</label></label>
+        </view>
+      </view>
+    </scroll-view>
+    <van-toast id="van-toast"/>
+  </view>
+</template>
+
+<script>
+    import wepy from '@wepy/core'
+    import { getPptType, getPptList} from '../../common/api'
+    import store from '../../store'
+    import { mapGetters } from '@wepy/x'
+    import userInfo from '../../mixins/userInfo'
+    import common from '../../mixins/common'
+
+    wepy.page({
+      mixins: [userInfo, common],
+      store,
+      data: {
+        keyword: "",
+        selectedTypeIdx: 0,
+        selectedTypeId: 0,
+        lastId: 0,
+        isLastPage: false,
+        scrollHeight: 0,
+        typeList: [
+          {
+            id: 0,
+            name:"全部",
+            choose: true
+          }
+        ],
+        /**
+         * {
+         *     id: 0,
+         *     name:"",
+         *     img_url:"",
+         *     desc_content:"",
+         *     ai_dou:0,
+         * }
+         */
+        pptList: []
+      },
+      computed: {
+        ...mapGetters(['isReady', 'winHeight'])
+      },
+      watch: {
+        isReady: {
+          immediate: true,
+          handler: function(isReady) {
+            if (isReady) {
+              let that = this
+              getPptType().then(res => {
+                res.data.list.map(res => {
+                  that.typeList.push(res)
+                })
+                setTimeout(()=>{
+                  let obj = wx.createSelectorQuery()
+                  obj.select('.head').boundingClientRect(res => {
+                    that.scrollHeight = that.winHeight - res.height
+                  }).exec()
+                  getPptList().then(res => {
+                    that.pptList = res.data.list
+                    that.lastId = res.data.list[res.data.list.length - 1].id
+                  })
+                }, 100)
+              })
+            }
+          }
+
+        },
+      },
+      methods: {
+        jumpDetail(id){
+          this.jump('/pages/ppt/detail?id=' + id)
+        },
+        bindInput(e){
+            this.keyword = e.$wx.detail.value
+        },
+        onSearch() {
+          this.lastId = 0
+          this.isLastPage = false
+          this.pptList = []
+          this.search()
+        },
+        clickType(idx, id){
+          this.selectedTypeIdx = idx
+          this.selectedTypeId = id
+          this.lastId = 0
+          this.isLastPage = false
+          this.pptList = []
+          this.search()
+        },
+        search() {
+          if (this.isLastPage) {
+            return
+          }
+          getPptList(this.lastId, this.selectedTypeId, this.keyword).then(res => {
+            if (res.data.list.length <= 0) {
+              this.isLastPage = true
+              return
+            }
+            this.lastId = res.data.list[res.data.list.length - 1].id
+            res.data.list.map(res => {
+              this.pptList.push(res)
+            })
+          })
+        },
+        onScrollToLower(){
+          this.search()
+        },
+      }
+    })
+</script>
+<config>
+  {
+  navigationBarTitleText: 'ppt列表',
+  usingComponents: {
+    "van-button": "module:@vant/weapp/dist/button",
+    "van-toast": "module:@vant/weapp/dist/toast",
+    }
+  }
+</config>

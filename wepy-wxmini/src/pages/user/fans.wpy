@@ -1,0 +1,264 @@
+<style lang="less" type="text/less" scoped>
+  .head{
+    width: 100%;
+    background-color: rgba(246, 242, 239, 0.98);
+  }
+  .table-head{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    padding-bottom: 20rpx;
+    .vip, .name{
+      display: flex;
+      flex-direction: column;
+    }
+  }
+  .search{
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    padding-top: 20rpx;
+    padding-bottom: 20rpx;
+    align-items: center;
+    justify-content: space-around;
+    .vip-list{
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      color: #4f4949;
+    }
+    .trangle{
+      width: 0rpx;
+      height: 0rpx;
+      border: 10rpx solid #000;
+      border-top-color: #8f8080;
+      border-bottom-color: transparent;
+      border-left-color: transparent;
+      border-right-color: transparent;
+      margin-top: 10rpx;
+      margin-left: 4rpx;
+    }
+
+    .keyword {
+      width: 60%;
+      padding: 10rpx;
+      border: 1rpx solid #668bb9;
+      color: #4f4949;
+      float: left;
+    }
+    .submit{
+      background-color: #81aee5;
+      color: white;
+      width: 12%;
+      padding: 10rpx;
+      height: 100%;
+      text-align: center;
+    }
+  }
+  .list{
+    display: flex;
+    flex-direction: column;
+    border-top: 1rpx solid #efe8e8;
+    width: 100%;
+    margin-top: 10rpx;
+    .item{
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20rpx;
+      border-bottom: 1rpx solid #efe8e8;
+      text-align: center;
+      .head-img{
+        width: 18%;
+      }
+      .head-img image{
+        width: 100%;
+        max-height: 111rpx;
+      }
+      .name{
+        display: flex;
+        flex-direction: column;
+        width: 37%;
+      }
+      .vip{
+        display: flex;
+        flex-direction: column;
+        color: #FF6A00F9;
+        width: 45%;
+      }
+    }
+  }
+</style>
+
+<template>
+  <view class="container" v-if="isReady">
+    <view class="head">
+      <view class="search">
+        <view class="vip-list">
+          <picker bindchange="bindPickerChange" value="{{directionIndex}}" range="{{vip}}" range-key="name">
+            <view class="picker">
+              {{vip[vipIndex].name}}
+            </view>
+          </picker>
+          <view class="trangle"></view>
+        </view>
+        <view class="keyword">
+          <input bindinput="bindInput" maxlength="10" placeholder="昵称或者账号" />
+        </view>
+        <view class="item submit" @tap="onSearch()">搜索</view>
+      </view>
+      <view class="table-head">
+        <view class="head-img">
+         头像
+        </view>
+        <view class="name">
+          <label>昵称</label>
+          <label>账号</label>
+        </view>
+        <view class="vip">
+          <label>VIP等级</label>
+          <label>注册时间</label>
+        </view>
+      </view>
+    </view>
+    <scroll-view class="list" style="max-height: {{scrollHeight}}px;"  scroll-y="true" bindscrolltolower="onScrollToLower">
+      <view class="item" v-for="item in list">
+        <view class="head-img">
+          <image src="{{item.head_img}}"></image>
+        </view>
+        <view class="name">
+          <label class="user_name">{{item.nick_name}}</label>
+          <label class="user_name">{{item.user_name}}</label>
+        </view>
+        <view class="vip">
+            <label>{{item.vip_name}}</label>
+            <label>{{item.created_at}}</label>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+  <van-toast id="van-toast"/>
+</template>
+
+<script>
+  import wepy from '@wepy/core'
+  import { mapGetters } from '@wepy/x'
+  import store from '../../store'
+  import { getFansList } from '../../common/api'
+  import common from '../../mixins/common'
+  import userInfo from '../../mixins/userInfo'
+
+  wepy.page({
+    mixins: [userInfo, common],
+    store,
+    data: {
+      scrollHeight: 0,
+      /**
+       * {
+       *     "id": 1,
+       *     "uid": 1,
+       *     "balance": 9999,
+       *     "direction": 1,
+       *     "created_at": "2022-07-01 15:30:30"
+       * }
+       */
+      list : [
+      ],
+      keyword: "",
+      lastId: 0,
+      isLastPage: false,
+      vipIndex: 0,
+      vip:[
+        {
+          name: "全部",
+          value: -1
+        },
+        {
+          name: "free",
+          value: 0
+        },
+        {
+          name: "VIP",
+          value: 1
+        },
+        {
+          name: "SVIP",
+          value: 2
+        },
+        {
+          name: "SVIP+",
+          value: 3
+        }
+      ]
+    },
+    computed: {
+      ...mapGetters(['isReady', 'winHeight'])
+    },
+    watch: {
+      isReady: {
+        immediate: true,
+        handler: function(isReady) {
+          isReady && this.init()
+          let that = this
+          setTimeout(()=>{
+            let obj = wx.createSelectorQuery()
+            obj.select('.head').boundingClientRect(res => {
+              that.scrollHeight = that.winHeight - res.height
+            }).exec()
+          }, 100)
+        }
+      }
+    },
+    methods: {
+      init(){
+        let that = this
+        that.userInfo()
+        getFansList().then(res => {
+          that.list = res.data.list
+          that.lastId = res.data.list[res.data.list.length - 1].id
+        })
+      },
+      bindPickerChange(e){
+        this.vipIndex = e.$wx.detail.value
+      },
+      bindInput(e){
+        this.keyword = e.$wx.detail.value
+      },
+      onSearch() {
+        this.lastId = 0
+        this.isLastPage = false
+        this.list = []
+        this.search()
+      },
+      search(){
+        let that = this
+        if (that.isLastPage) {
+          return
+        }
+        getFansList(that.lastId, that.vip[that.vipIndex].value, that.keyword).then(res => {
+          if (res.data.list.length <= 0) {
+            that.isLastPage = true
+            return
+          }
+          that.lastId = res.data.list[res.data.list.length - 1].id
+          res.data.list.map(res => {
+            that.list.push(res)
+          })
+        })
+      },
+      onScrollToLower(){
+        this.search()
+      }
+    }
+  })
+</script>
+<config>
+  {
+  navigationBarTitleText: '我的好友',
+  usingComponents: {
+  "van-toast": "module:@vant/weapp/dist/toast",
+  }
+  }
+</config>
