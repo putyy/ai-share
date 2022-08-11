@@ -18,7 +18,7 @@ go build main.go && ./main
 
 ## nginx配置
 ```shell
-location ~ (/api|/admin) {
+location ~ (/api/|/admin/) {
     add_header Access-Control-Allow-Origin *;
     add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS, DELETE';
     add_header Access-Control-Allow-Headers 'DNT,Keep-Alive,User-Agent,Cache-Control,Content-Type,Authorization,X-Token';
@@ -34,3 +34,7 @@ location ~ (/api|/admin) {
     proxy_pass http://127.0.0.1:8891;
 }
 ```
+
+## 参考
+
+去水印copy该项目部分: https://github.com/IHuan123/watermark-server
