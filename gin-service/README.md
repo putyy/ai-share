@@ -1,11 +1,12 @@
 ## 安装
-```shell
-# 拉取依赖
-go mod tidy
+1.导入storage/ai.sql到mysql
 
-# 修改相关配置
-cat .env.example > .env
-```
+2.拉取依赖
+> go mod tidy
+
+3.创建.env文件以及配置
+> cat .env.example > .env
+
 
 ## 启动
 ```shell
@@ -36,5 +37,4 @@ location ~ (/api/|/admin/) {
 ```
 
 ## 参考
-
-去水印copy该项目部分: https://github.com/IHuan123/watermark-server
+> 去水印copy该项目部分: https://github.com/IHuan123/watermark-server

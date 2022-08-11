@@ -8,5 +8,5 @@
 ai-share
 ├─gin-service    服务端api接口：gin
 ├─gin-service    后台系统前端：vue3+vite
-├─gin-service    小程序前端于：wepy
+├─gin-service    小程序前端：wepy
 ~~~
